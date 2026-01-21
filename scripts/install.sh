@@ -74,20 +74,48 @@ mkdir -p /var/log/proxyvault
 echo -e "${GREEN}[6/8] Installing Python backend...${NC}"
 cd /opt/proxyvault
 
-# Copy backend files (assumes script is run from ProxyVault directory)
-if [ -d "$(dirname "$0")/../backend" ]; then
-    cp -r "$(dirname "$0")/../backend" /opt/proxyvault/
+# Detect script directory and find backend files
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+REPO_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+
+echo "Script directory: $SCRIPT_DIR"
+echo "Repository directory: $REPO_DIR"
+
+# Copy backend files
+if [ -d "$REPO_DIR/backend" ]; then
+    echo "Copying backend files from $REPO_DIR/backend"
+    cp -r "$REPO_DIR/backend" /opt/proxyvault/
+    echo "Backend files copied successfully"
 else
-    echo -e "${YELLOW}Backend files not found. Cloning from GitHub...${NC}"
-    # This will be updated with actual GitHub URL
-    echo -e "${RED}Please manually copy backend files to /opt/proxyvault/backend${NC}"
+    echo -e "${RED}ERROR: Backend files not found at $REPO_DIR/backend${NC}"
+    echo -e "${RED}Please ensure you're running this script from the proxyVault directory:${NC}"
+    echo -e "${YELLOW}cd ~/proxyVault && sudo bash scripts/install.sh${NC}"
+    exit 1
+fi
+
+# Verify backend files exist
+if [ ! -f "/opt/proxyvault/backend/requirements.txt" ]; then
+    echo -e "${RED}ERROR: Backend files not copied correctly${NC}"
+    exit 1
 fi
 
 # Create Python virtual environment
+echo "Creating Python virtual environment..."
 python3 -m venv /opt/proxyvault/venv
 source /opt/proxyvault/venv/bin/activate
 pip install --upgrade pip
 pip install -r /opt/proxyvault/backend/requirements.txt
+
+echo -e "${GREEN}Python backend installed successfully${NC}"
+
+# Copy frontend files
+echo "Copying frontend files..."
+if [ -d "$REPO_DIR/frontend" ]; then
+    cp -r "$REPO_DIR/frontend" /opt/proxyvault/
+    echo "Frontend files copied successfully"
+else
+    echo -e "${YELLOW}Warning: Frontend files not found${NC}"
+fi
 
 echo -e "${GREEN}[7/8] Creating systemd service...${NC}"
 cat > /etc/systemd/system/proxyvault.service << 'EOF'
