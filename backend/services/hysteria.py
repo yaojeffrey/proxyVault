@@ -95,9 +95,20 @@ class HysteriaManager:
                     '-subj', '/CN=bing.com'
                 ], check=True, capture_output=True)
                 
-                # Set proper permissions for hysteria-server to read
-                os.chmod(cert_file, 0o644)
-                os.chmod(key_file, 0o600)
+                # Set proper permissions and ownership for hysteria-server to read
+                os.chmod(cert_file, 0o644)  # readable by all
+                os.chmod(key_file, 0o640)   # readable by owner and group
+                
+                # Change ownership to hysteria user (who runs the service)
+                try:
+                    import pwd, grp
+                    hysteria_uid = pwd.getpwnam('hysteria').pw_uid
+                    hysteria_gid = grp.getgrnam('hysteria').gr_gid
+                    os.chown(cert_file, hysteria_uid, hysteria_gid)
+                    os.chown(key_file, hysteria_uid, hysteria_gid)
+                except KeyError:
+                    # If hysteria user doesn't exist, keep as root but make readable
+                    os.chmod(key_file, 0o644)
             
             # Use TLS with self-signed cert (not ACME)
             hysteria_config["tls"] = {
