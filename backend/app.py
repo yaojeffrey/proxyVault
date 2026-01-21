@@ -12,6 +12,7 @@ from services.hysteria import HysteriaManager
 from services.vless import VLESSManager
 from services.openvpn import OpenVPNManager
 from services.routing import RoutingManager
+from services.monitoring import monitoring_manager
 from config import get_settings
 
 # Initialize FastAPI app
@@ -249,6 +250,78 @@ async def get_system_info():
             "percent": psutil.disk_usage('/').percent
         }
     }
+
+
+# Monitoring endpoints
+@app.get("/api/monitoring/stats", dependencies=[Depends(verify_credentials)])
+async def get_monitoring_stats():
+    """Get comprehensive system statistics"""
+    return monitoring_manager.get_system_stats()
+
+
+@app.get("/api/monitoring/history", dependencies=[Depends(verify_credentials)])
+async def get_monitoring_history():
+    """Get historical monitoring data"""
+    return monitoring_manager.get_historical_data()
+
+
+@app.get("/api/monitoring/connections", dependencies=[Depends(verify_credentials)])
+async def get_connections():
+    """Get active connections count"""
+    return monitoring_manager.get_all_connections()
+
+
+@app.get("/api/monitoring/traffic", dependencies=[Depends(verify_credentials)])
+async def get_traffic_stats():
+    """Get detailed traffic statistics"""
+    return monitoring_manager.get_traffic_stats()
+
+
+@app.get("/api/monitoring/interfaces", dependencies=[Depends(verify_credentials)])
+async def get_network_interfaces():
+    """Get network interfaces information"""
+    return monitoring_manager.get_network_interfaces()
+
+
+@app.get("/api/monitoring/uptime", dependencies=[Depends(verify_credentials)])
+async def get_uptime():
+    """Get system uptime"""
+    return monitoring_manager.get_uptime()
+
+
+@app.get("/api/monitoring/process/{service}", dependencies=[Depends(verify_credentials)])
+async def get_process_info(service: str):
+    """Get process information for a service"""
+    service_map = {
+        'hysteria': settings.HYSTERIA_SERVICE,
+        'vless': settings.VLESS_SERVICE,
+        'openvpn': settings.OPENVPN_SERVICE,
+        'proxyvault': 'proxyvault'
+    }
+    
+    service_name = service_map.get(service)
+    if not service_name:
+        raise HTTPException(status_code=404, detail="Service not found")
+    
+    return monitoring_manager.get_process_info(service_name)
+
+
+@app.get("/api/logs/{service}", dependencies=[Depends(verify_credentials)])
+async def get_service_logs(service: str, lines: int = 50):
+    """Get recent logs for a service"""
+    service_map = {
+        'hysteria': settings.HYSTERIA_SERVICE,
+        'vless': settings.VLESS_SERVICE,
+        'openvpn': settings.OPENVPN_SERVICE,
+        'proxyvault': 'proxyvault'
+    }
+    
+    service_name = service_map.get(service)
+    if not service_name:
+        raise HTTPException(status_code=404, detail="Service not found")
+    
+    logs = monitoring_manager.get_service_logs(service_name, lines)
+    return {"service": service, "logs": logs}
 
 
 if __name__ == "__main__":

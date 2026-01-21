@@ -306,6 +306,123 @@ button {
     display: block;
 }
 
+/* Monitoring Styles */
+.monitoring-section {
+    margin-bottom: 30px;
+}
+
+.monitoring-section h3 {
+    color: #555;
+    margin-bottom: 15px;
+    font-size: 1.2rem;
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.stat-card {
+    background: #f8f9fa;
+    padding: 20px;
+    border-radius: 8px;
+    border-left: 4px solid #667eea;
+    text-align: center;
+}
+
+.stat-label {
+    font-size: 0.9rem;
+    color: #888;
+    margin-bottom: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.stat-value {
+    font-size: 2rem;
+    font-weight: bold;
+    color: #333;
+    margin-bottom: 5px;
+}
+
+.stat-details {
+    font-size: 0.85rem;
+    color: #666;
+    margin-top: 10px;
+}
+
+.traffic-chart {
+    background: #f8f9fa;
+    padding: 20px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+}
+
+.traffic-chart canvas {
+    max-height: 300px;
+}
+
+/* Logs Styles */
+.logs-controls {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+}
+
+.logs-controls select {
+    padding: 10px;
+    border: 2px solid #e0e0e0;
+    border-radius: 5px;
+    font-size: 1rem;
+    min-width: 150px;
+}
+
+.logs-container {
+    background: #1e1e1e;
+    border-radius: 8px;
+    padding: 20px;
+    max-height: 600px;
+    overflow-y: auto;
+}
+
+.logs-container pre {
+    color: #d4d4d4;
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+    font-size: 0.9rem;
+    line-height: 1.5;
+    margin: 0;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+
+/* Interface Card */
+.interface-card {
+    background: #f8f9fa;
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 10px;
+    border-left: 4px solid #28a745;
+}
+
+.interface-card.down {
+    border-left-color: #dc3545;
+}
+
+.interface-card h4 {
+    margin: 0 0 10px 0;
+    color: #333;
+}
+
+.interface-card .address {
+    font-family: monospace;
+    font-size: 0.9rem;
+    color: #666;
+    margin: 5px 0;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
     .tabs {
@@ -329,6 +446,19 @@ button {
     }
     
     .routing-controls button {
+        width: 100%;
+    }
+
+    .stats-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .logs-controls {
+        flex-direction: column;
+    }
+
+    .logs-controls select,
+    .logs-controls button {
         width: 100%;
     }
 }

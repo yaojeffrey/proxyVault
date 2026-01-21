@@ -326,12 +326,284 @@ async function loadConfigurations() {
     }
 }
 
+// ============================================
+// MONITORING FUNCTIONS
+// ============================================
+
+let bandwidthChart, cpuChart, memoryChart;
+let logsAutoRefresh = null;
+
+// Initialize Charts
+function initializeCharts() {
+    const commonOptions = {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                display: true,
+                position: 'top'
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: true
+            }
+        }
+    };
+
+    // Bandwidth Chart
+    const bandwidthCtx = document.getElementById('chart-bandwidth');
+    if (bandwidthCtx) {
+        bandwidthChart = new Chart(bandwidthCtx, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [
+                    {
+                        label: 'Download (KB/s)',
+                        data: [],
+                        borderColor: '#28a745',
+                        backgroundColor: 'rgba(40, 167, 69, 0.1)',
+                        tension: 0.4
+                    },
+                    {
+                        label: 'Upload (KB/s)',
+                        data: [],
+                        borderColor: '#dc3545',
+                        backgroundColor: 'rgba(220, 53, 69, 0.1)',
+                        tension: 0.4
+                    }
+                ]
+            },
+            options: {
+                ...commonOptions,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                return value + ' KB/s';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    // CPU Chart (mini sparkline)
+    const cpuCtx = document.getElementById('chart-cpu');
+    if (cpuCtx) {
+        cpuChart = new Chart(cpuCtx, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [{
+                    label: 'CPU %',
+                    data: [],
+                    borderColor: '#667eea',
+                    backgroundColor: 'rgba(102, 126, 234, 0.2)',
+                    borderWidth: 2,
+                    pointRadius: 0,
+                    tension: 0.4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { display: false },
+                    y: { display: false, beginAtZero: true, max: 100 }
+                }
+            }
+        });
+    }
+
+    // Memory Chart (mini sparkline)
+    const memoryCtx = document.getElementById('chart-memory');
+    if (memoryCtx) {
+        memoryChart = new Chart(memoryCtx, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [{
+                    label: 'Memory %',
+                    data: [],
+                    borderColor: '#f39c12',
+                    backgroundColor: 'rgba(243, 156, 18, 0.2)',
+                    borderWidth: 2,
+                    pointRadius: 0,
+                    tension: 0.4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { display: false },
+                    y: { display: false, beginAtZero: true, max: 100 }
+                }
+            }
+        });
+    }
+}
+
+// Update Monitoring Data
+async function updateMonitoring() {
+    try {
+        // Get system stats
+        const stats = await apiRequest('/api/monitoring/stats');
+        
+        // Update stat values
+        document.getElementById('stat-cpu').textContent = stats.cpu.percent.toFixed(1) + '%';
+        document.getElementById('stat-memory').textContent = stats.memory.percent.toFixed(1) + '%';
+        document.getElementById('stat-disk').textContent = stats.disk.percent.toFixed(1) + '%';
+        document.getElementById('stat-download').textContent = stats.network.bandwidth_in + ' KB/s';
+        document.getElementById('stat-upload').textContent = stats.network.bandwidth_out + ' KB/s';
+        
+        // Format bytes
+        document.getElementById('stat-total-rx').textContent = formatBytes(stats.network.bytes_recv);
+        document.getElementById('stat-total-tx').textContent = formatBytes(stats.network.bytes_sent);
+        
+        // Disk details
+        document.getElementById('disk-details').textContent = 
+            `${formatBytes(stats.disk.used)} / ${formatBytes(stats.disk.total)}`;
+        
+        // Get historical data
+        const history = await apiRequest('/api/monitoring/history');
+        
+        // Update bandwidth chart
+        if (bandwidthChart && history.bandwidth.length > 0) {
+            bandwidthChart.data.labels = history.bandwidth.map(d => d.time);
+            bandwidthChart.data.datasets[0].data = history.bandwidth.map(d => d.in);
+            bandwidthChart.data.datasets[1].data = history.bandwidth.map(d => d.out);
+            bandwidthChart.update('none');
+        }
+        
+        // Update CPU chart
+        if (cpuChart && history.cpu.length > 0) {
+            cpuChart.data.labels = history.cpu.map(d => d.time);
+            cpuChart.data.datasets[0].data = history.cpu.map(d => d.value);
+            cpuChart.update('none');
+        }
+        
+        // Update Memory chart
+        if (memoryChart && history.memory.length > 0) {
+            memoryChart.data.labels = history.memory.map(d => d.time);
+            memoryChart.data.datasets[0].data = history.memory.map(d => d.value);
+            memoryChart.update('none');
+        }
+        
+        // Get connections
+        const connections = await apiRequest('/api/monitoring/connections');
+        document.getElementById('conn-hysteria').textContent = connections.hysteria;
+        document.getElementById('conn-vless').textContent = connections.vless;
+        document.getElementById('conn-total').textContent = connections.total;
+        
+        // Get uptime
+        const uptime = await apiRequest('/api/monitoring/uptime');
+        document.getElementById('stat-uptime').textContent = uptime.formatted;
+        document.getElementById('uptime-details').textContent = `Since ${uptime.boot_time}`;
+        
+        // Get network interfaces
+        const interfaces = await apiRequest('/api/monitoring/interfaces');
+        updateInterfacesList(interfaces);
+        
+    } catch (error) {
+        console.error('Failed to update monitoring:', error);
+    }
+}
+
+function updateInterfacesList(interfaces) {
+    const container = document.getElementById('interfaces-list');
+    if (!container) return;
+    
+    let html = '';
+    for (const [name, info] of Object.entries(interfaces)) {
+        const statusClass = info.is_up ? '' : 'down';
+        const statusText = info.is_up ? '🟢 UP' : '🔴 DOWN';
+        
+        html += `
+            <div class="interface-card ${statusClass}">
+                <h4>${name} ${statusText}</h4>
+                ${info.addresses.map(addr => `
+                    <div class="address">${addr.type}: ${addr.address}</div>
+                `).join('')}
+            </div>
+        `;
+    }
+    container.innerHTML = html;
+}
+
+// Format bytes to human-readable
+function formatBytes(bytes) {
+    if (bytes === 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
+// Logs Functions
+async function loadLogs() {
+    const service = document.getElementById('log-service').value;
+    const lines = document.getElementById('log-lines').value;
+    const output = document.getElementById('logs-output');
+    
+    try {
+        output.textContent = 'Loading logs...';
+        const result = await apiRequest(`/api/logs/${service}?lines=${lines}`);
+        
+        if (result.logs && result.logs.length > 0) {
+            output.textContent = result.logs.join('\n');
+            // Auto-scroll to bottom
+            output.parentElement.scrollTop = output.parentElement.scrollHeight;
+        } else {
+            output.textContent = 'No logs available';
+        }
+    } catch (error) {
+        output.textContent = `Error loading logs: ${error.message}`;
+    }
+}
+
+function toggleAutoRefresh() {
+    const btn = document.getElementById('auto-refresh-btn');
+    
+    if (logsAutoRefresh) {
+        clearInterval(logsAutoRefresh);
+        logsAutoRefresh = null;
+        btn.textContent = '▶️ Auto-refresh';
+        btn.parentElement.classList.remove('btn-success');
+        btn.parentElement.classList.add('btn-secondary');
+    } else {
+        loadLogs(); // Load immediately
+        logsAutoRefresh = setInterval(loadLogs, 5000); // Refresh every 5 seconds
+        btn.textContent = '⏸️ Stop refresh';
+        btn.parentElement.classList.remove('btn-secondary');
+        btn.parentElement.classList.add('btn-success');
+    }
+}
+
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
     updateDashboard();
     loadConfigurations();
     loadRoutingInfo();
     
+    // Initialize charts
+    initializeCharts();
+    
+    // Initial monitoring update
+    updateMonitoring();
+    
     // Auto-refresh dashboard every 10 seconds
     setInterval(updateDashboard, 10000);
+    
+    // Auto-refresh monitoring every 3 seconds
+    setInterval(updateMonitoring, 3000);
+    
+    // Load logs initially
+    loadLogs();
 });
