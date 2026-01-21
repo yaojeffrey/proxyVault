@@ -70,6 +70,7 @@ apt-get install -y \
     unzip \
     iptables \
     openvpn \
+    openssl \
     net-tools \
     iproute2
 
