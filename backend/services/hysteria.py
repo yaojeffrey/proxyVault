@@ -79,10 +79,26 @@ class HysteriaManager:
                 # Single port (traditional)
                 hysteria_config["listen"] = f":{config_data['port']}"
             
-            # TLS/ACME configuration
-            hysteria_config["acme"] = {
-                "domains": [],  # Self-signed for now
-                "email": ""
+            # TLS configuration - use self-signed certificates
+            # Generate self-signed cert if it doesn't exist
+            cert_dir = self.config_path.parent
+            cert_file = cert_dir / "cert.pem"
+            key_file = cert_dir / "key.pem"
+            
+            if not cert_file.exists() or not key_file.exists():
+                # Generate self-signed certificate
+                subprocess.run([
+                    'openssl', 'req', '-x509', '-nodes', '-newkey', 'rsa:2048',
+                    '-keyout', str(key_file),
+                    '-out', str(cert_file),
+                    '-days', '36500',
+                    '-subj', '/CN=bing.com'
+                ], check=True, capture_output=True)
+            
+            # Use TLS with self-signed cert (not ACME)
+            hysteria_config["tls"] = {
+                "cert": str(cert_file),
+                "key": str(key_file)
             }
             
             # Authentication
