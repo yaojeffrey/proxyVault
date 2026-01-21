@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ProxyVault - Admin Panel</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🔐 ProxyVault</h1>
+            <p>Multi-Protocol Proxy Manager</p>
+        </header>
+
+        <!-- Dashboard -->
+        <section id="dashboard" class="card">
+            <h2>📊 Dashboard</h2>
+            <div class="status-grid">
+                <div class="status-card" id="hysteria-status">
+                    <h3>Hysteria</h3>
+                    <div class="status-indicator">
+                        <span class="status-dot offline"></span>
+                        <span class="status-text">Offline</span>
+                    </div>
+                </div>
+                <div class="status-card" id="vless-status">
+                    <h3>VLESS</h3>
+                    <div class="status-indicator">
+                        <span class="status-dot offline"></span>
+                        <span class="status-text">Offline</span>
+                    </div>
+                </div>
+                <div class="status-card" id="openvpn-status">
+                    <h3>OpenVPN</h3>
+                    <div class="status-indicator">
+                        <span class="status-dot offline"></span>
+                        <span class="status-text">Offline</span>
+                    </div>
+                </div>
+                <div class="status-card" id="routing-status">
+                    <h3>Traffic Routing</h3>
+                    <div class="status-indicator">
+                        <span class="status-dot offline"></span>
+                        <span class="status-text">Disabled</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Tabs -->
+        <div class="tabs">
+            <button class="tab-btn active" data-tab="hysteria-tab">Hysteria</button>
+            <button class="tab-btn" data-tab="vless-tab">VLESS</button>
+            <button class="tab-btn" data-tab="openvpn-tab">OpenVPN</button>
+            <button class="tab-btn" data-tab="routing-tab">Routing</button>
+        </div>
+
+        <!-- Hysteria Tab -->
+        <section id="hysteria-tab" class="tab-content active card">
+            <h2>Hysteria 2 Configuration</h2>
+            <form id="hysteria-form">
+                <div class="form-group">
+                    <label for="hysteria-port">Port:</label>
+                    <input type="number" id="hysteria-port" value="36712" required>
+                </div>
+                <div class="form-group">
+                    <label for="hysteria-password">Password:</label>
+                    <input type="password" id="hysteria-password" required>
+                    <button type="button" class="btn-secondary" onclick="generatePassword('hysteria-password')">Generate</button>
+                </div>
+                <div class="form-group">
+                    <label for="hysteria-obfs">Obfuscation (Optional):</label>
+                    <input type="text" id="hysteria-obfs" placeholder="Leave empty to disable">
+                </div>
+                <div class="form-group">
+                    <label for="hysteria-bandwidth-up">Upload Bandwidth:</label>
+                    <input type="text" id="hysteria-bandwidth-up" value="100 mbps">
+                </div>
+                <div class="form-group">
+                    <label for="hysteria-bandwidth-down">Download Bandwidth:</label>
+                    <input type="text" id="hysteria-bandwidth-down" value="100 mbps">
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn-primary">Save Configuration</button>
+                    <button type="button" class="btn-success" onclick="controlService('hysteria', 'start')">Start</button>
+                    <button type="button" class="btn-danger" onclick="controlService('hysteria', 'stop')">Stop</button>
+                    <button type="button" class="btn-secondary" onclick="controlService('hysteria', 'restart')">Restart</button>
+                </div>
+            </form>
+        </section>
+
+        <!-- VLESS Tab -->
+        <section id="vless-tab" class="tab-content card">
+            <h2>VLESS + Reality Configuration</h2>
+            <form id="vless-form">
+                <div class="form-group">
+                    <label for="vless-port">Port:</label>
+                    <input type="number" id="vless-port" value="8443" required>
+                </div>
+                <div class="form-group">
+                    <label for="vless-uuid">UUID:</label>
+                    <input type="text" id="vless-uuid" required>
+                    <button type="button" class="btn-secondary" onclick="generateUUID()">Generate UUID</button>
+                </div>
+                <div class="form-group">
+                    <label for="vless-reality-dest">Reality Destination:</label>
+                    <input type="text" id="vless-reality-dest" value="www.microsoft.com:443" required>
+                    <small>Target domain for TLS camouflage (e.g., www.microsoft.com:443)</small>
+                </div>
+                <div class="form-group">
+                    <label for="vless-server-names">Server Names (comma-separated):</label>
+                    <input type="text" id="vless-server-names" value="www.microsoft.com" required>
+                </div>
+                <div class="form-group">
+                    <label>Reality Keys:</label>
+                    <button type="button" class="btn-secondary" onclick="generateRealityKeys()">Generate New Keys</button>
+                </div>
+                <div class="form-group">
+                    <label for="vless-private-key">Private Key:</label>
+                    <input type="text" id="vless-private-key" readonly>
+                </div>
+                <div class="form-group">
+                    <label for="vless-public-key">Public Key:</label>
+                    <input type="text" id="vless-public-key" readonly>
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn-primary">Save Configuration</button>
+                    <button type="button" class="btn-success" onclick="controlService('vless', 'start')">Start</button>
+                    <button type="button" class="btn-danger" onclick="controlService('vless', 'stop')">Stop</button>
+                    <button type="button" class="btn-secondary" onclick="controlService('vless', 'restart')">Restart</button>
+                </div>
+            </form>
+        </section>
+
+        <!-- OpenVPN Tab -->
+        <section id="openvpn-tab" class="tab-content card">
+            <h2>OpenVPN Configuration</h2>
+            <form id="openvpn-form">
+                <div class="form-group">
+                    <label for="openvpn-config">OpenVPN Config File (.ovpn):</label>
+                    <textarea id="openvpn-config" rows="10" placeholder="Paste your .ovpn file content here..."></textarea>
+                    <input type="file" id="openvpn-file" accept=".ovpn,.conf" onchange="loadOpenVPNFile(this)">
+                </div>
+                <div class="form-group">
+                    <label for="openvpn-username">Username (if required):</label>
+                    <input type="text" id="openvpn-username">
+                </div>
+                <div class="form-group">
+                    <label for="openvpn-password">Password (if required):</label>
+                    <input type="password" id="openvpn-password">
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn-primary">Save & Connect</button>
+                    <button type="button" class="btn-danger" onclick="controlService('openvpn', 'stop')">Disconnect</button>
+                    <button type="button" class="btn-secondary" onclick="controlService('openvpn', 'restart')">Reconnect</button>
+                </div>
+            </form>
+        </section>
+
+        <!-- Routing Tab -->
+        <section id="routing-tab" class="tab-content card">
+            <h2>Traffic Routing</h2>
+            <div class="info-box">
+                <p><strong>About Traffic Routing:</strong></p>
+                <p>When enabled, all inbound traffic from Hysteria and VLESS will be routed through the OpenVPN tunnel. 
+                   Direct SSH and management traffic will not be affected.</p>
+                <p><strong>Requirements:</strong> OpenVPN must be connected before enabling routing.</p>
+            </div>
+            <div class="routing-controls">
+                <button class="btn-success" onclick="enableRouting()">Enable Routing</button>
+                <button class="btn-danger" onclick="disableRouting()">Disable Routing</button>
+            </div>
+            <div id="routing-info" class="routing-info"></div>
+        </section>
+
+        <!-- Notifications -->
+        <div id="notification" class="notification"></div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,260 @@
+from fastapi import FastAPI, HTTPException, Depends, status
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.security import HTTPBasic, HTTPBasicCredentials
+from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel
+import secrets
+import os
+from typing import Optional, Dict, Any
+import uvicorn
+
+from services.hysteria import HysteriaManager
+from services.vless import VLESSManager
+from services.openvpn import OpenVPNManager
+from services.routing import RoutingManager
+from config import get_settings
+
+# Initialize FastAPI app
+app = FastAPI(
+    title="ProxyVault API",
+    description="Multi-Protocol Proxy Manager with OpenVPN Routing",
+    version="1.0.0"
+)
+
+# CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # In production, specify actual origins
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Security
+security = HTTPBasic()
+settings = get_settings()
+
+# Service managers
+hysteria_mgr = HysteriaManager()
+vless_mgr = VLESSManager()
+openvpn_mgr = OpenVPNManager()
+routing_mgr = RoutingManager()
+
+
+# Authentication
+def verify_credentials(credentials: HTTPBasicCredentials = Depends(security)):
+    correct_username = secrets.compare_digest(credentials.username, settings.ADMIN_USERNAME)
+    correct_password = secrets.compare_digest(credentials.password, settings.ADMIN_PASSWORD)
+    if not (correct_username and correct_password):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect username or password",
+            headers={"WWW-Authenticate": "Basic"},
+        )
+    return credentials.username
+
+
+# Pydantic models
+class HysteriaConfig(BaseModel):
+    port: int = 36712
+    password: str
+    obfs: Optional[str] = None
+    bandwidth_up: Optional[str] = "100 mbps"
+    bandwidth_down: Optional[str] = "100 mbps"
+
+
+class VLESSConfig(BaseModel):
+    port: int = 8443
+    uuid: str
+    reality_dest: str = "www.microsoft.com:443"
+    reality_server_names: list[str] = ["www.microsoft.com"]
+    private_key: Optional[str] = None
+    public_key: Optional[str] = None
+    short_ids: list[str] = [""]
+
+
+class OpenVPNConfig(BaseModel):
+    config_content: str
+    username: Optional[str] = None
+    password: Optional[str] = None
+
+
+class ServiceAction(BaseModel):
+    action: str  # start, stop, restart, status
+
+
+# API Routes
+
+@app.get("/")
+async def root():
+    return {
+        "name": "ProxyVault API",
+        "version": "1.0.0",
+        "status": "running"
+    }
+
+
+@app.get("/api/status", dependencies=[Depends(verify_credentials)])
+async def get_status():
+    """Get status of all services"""
+    return {
+        "hysteria": hysteria_mgr.get_status(),
+        "vless": vless_mgr.get_status(),
+        "openvpn": openvpn_mgr.get_status(),
+        "routing": routing_mgr.is_routing_enabled()
+    }
+
+
+# Hysteria endpoints
+@app.get("/api/hysteria/config", dependencies=[Depends(verify_credentials)])
+async def get_hysteria_config():
+    """Get current Hysteria configuration"""
+    return hysteria_mgr.get_config()
+
+
+@app.post("/api/hysteria/config", dependencies=[Depends(verify_credentials)])
+async def update_hysteria_config(config: HysteriaConfig):
+    """Update Hysteria configuration"""
+    try:
+        hysteria_mgr.update_config(config.dict())
+        return {"status": "success", "message": "Hysteria configuration updated"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/hysteria/service", dependencies=[Depends(verify_credentials)])
+async def control_hysteria_service(action: ServiceAction):
+    """Control Hysteria service (start/stop/restart)"""
+    try:
+        result = hysteria_mgr.control_service(action.action)
+        return {"status": "success", "action": action.action, "result": result}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# VLESS endpoints
+@app.get("/api/vless/config", dependencies=[Depends(verify_credentials)])
+async def get_vless_config():
+    """Get current VLESS configuration"""
+    return vless_mgr.get_config()
+
+
+@app.post("/api/vless/config", dependencies=[Depends(verify_credentials)])
+async def update_vless_config(config: VLESSConfig):
+    """Update VLESS configuration"""
+    try:
+        vless_mgr.update_config(config.dict())
+        return {"status": "success", "message": "VLESS configuration updated"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/vless/service", dependencies=[Depends(verify_credentials)])
+async def control_vless_service(action: ServiceAction):
+    """Control VLESS service (start/stop/restart)"""
+    try:
+        result = vless_mgr.control_service(action.action)
+        return {"status": "success", "action": action.action, "result": result}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/vless/generate-keys", dependencies=[Depends(verify_credentials)])
+async def generate_vless_keys():
+    """Generate new Reality key pair"""
+    try:
+        keys = vless_mgr.generate_reality_keys()
+        return {"status": "success", "keys": keys}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# OpenVPN endpoints
+@app.get("/api/openvpn/config", dependencies=[Depends(verify_credentials)])
+async def get_openvpn_config():
+    """Get current OpenVPN configuration status"""
+    return openvpn_mgr.get_config()
+
+
+@app.post("/api/openvpn/config", dependencies=[Depends(verify_credentials)])
+async def update_openvpn_config(config: OpenVPNConfig):
+    """Upload OpenVPN configuration"""
+    try:
+        openvpn_mgr.update_config(
+            config.config_content,
+            config.username,
+            config.password
+        )
+        return {"status": "success", "message": "OpenVPN configuration updated"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/openvpn/service", dependencies=[Depends(verify_credentials)])
+async def control_openvpn_service(action: ServiceAction):
+    """Control OpenVPN service (start/stop/restart)"""
+    try:
+        result = openvpn_mgr.control_service(action.action)
+        return {"status": "success", "action": action.action, "result": result}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# Routing endpoints
+@app.get("/api/routing/status", dependencies=[Depends(verify_credentials)])
+async def get_routing_status():
+    """Get traffic routing status"""
+    return {
+        "enabled": routing_mgr.is_routing_enabled(),
+        "rules": routing_mgr.get_routing_rules()
+    }
+
+
+@app.post("/api/routing/enable", dependencies=[Depends(verify_credentials)])
+async def enable_routing():
+    """Enable traffic routing through OpenVPN"""
+    try:
+        routing_mgr.enable_routing()
+        return {"status": "success", "message": "Traffic routing enabled"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/routing/disable", dependencies=[Depends(verify_credentials)])
+async def disable_routing():
+    """Disable traffic routing"""
+    try:
+        routing_mgr.disable_routing()
+        return {"status": "success", "message": "Traffic routing disabled"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# System endpoints
+@app.get("/api/system/info", dependencies=[Depends(verify_credentials)])
+async def get_system_info():
+    """Get system information"""
+    import psutil
+    return {
+        "cpu_percent": psutil.cpu_percent(interval=1),
+        "memory": {
+            "total": psutil.virtual_memory().total,
+            "available": psutil.virtual_memory().available,
+            "percent": psutil.virtual_memory().percent
+        },
+        "disk": {
+            "total": psutil.disk_usage('/').total,
+            "used": psutil.disk_usage('/').used,
+            "free": psutil.disk_usage('/').free,
+            "percent": psutil.disk_usage('/').percent
+        }
+    }
+
+
+if __name__ == "__main__":
+    uvicorn.run(
+        "app:app",
+        host="0.0.0.0",
+        port=settings.API_PORT,
+        reload=True
+    )
