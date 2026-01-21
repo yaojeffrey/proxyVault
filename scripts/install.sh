@@ -142,7 +142,7 @@ After=network.target
 Type=simple
 User=root
 WorkingDirectory=/opt/proxyvault/backend
-Environment="PATH=/opt/proxyvault/venv/bin"
+Environment="PATH=/opt/proxyvault/venv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
 ExecStart=/opt/proxyvault/venv/bin/python app.py
 Restart=on-failure
 RestartSec=5s
