@@ -45,12 +45,14 @@ http:
         
         # Hysteria 2 URI (for some clients)
         # Format: hysteria2://password@server:port/?obfs=salamander&obfs-password=xxx
-        uri_parts = [f"hysteria2://{config_data['password']}@{server_ip}:{port_str}"]
+        # Password must be URL-encoded to handle special characters
+        encoded_password = quote(config_data['password'], safe='')
+        uri_parts = [f"hysteria2://{encoded_password}@{server_ip}:{port_str}"]
         params = []
         
         if config_data.get('obfs'):
             params.append(f"obfs=salamander")
-            params.append(f"obfs-password={quote(config_data['obfs'])}")
+            params.append(f"obfs-password={quote(config_data['obfs'], safe='')}")
         
         if params:
             uri = uri_parts[0] + "/?" + "&".join(params)
