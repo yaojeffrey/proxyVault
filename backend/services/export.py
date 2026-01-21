@@ -22,6 +22,9 @@ class ConfigExporter:
 
 auth: {config_data['password']}
 
+tls:
+  insecure: true
+
 bandwidth:
   up: {config_data.get('bandwidth_up', '100 mbps')}
   down: {config_data.get('bandwidth_down', '100 mbps')}
@@ -44,20 +47,17 @@ http:
 """
         
         # Hysteria 2 URI (for some clients)
-        # Format: hysteria2://password@server:port/?obfs=salamander&obfs-password=xxx
+        # Format: hysteria2://password@server:port/?insecure=1&obfs=salamander&obfs-password=xxx
         # Password must be URL-encoded to handle special characters
         encoded_password = quote(config_data['password'], safe='')
         uri_parts = [f"hysteria2://{encoded_password}@{server_ip}:{port_str}"]
-        params = []
+        params = ["insecure=1"]  # Required for self-signed certs
         
         if config_data.get('obfs'):
             params.append(f"obfs=salamander")
             params.append(f"obfs-password={quote(config_data['obfs'], safe='')}")
         
-        if params:
-            uri = uri_parts[0] + "/?" + "&".join(params)
-        else:
-            uri = uri_parts[0]
+        uri = uri_parts[0] + "/?" + "&".join(params)
         
         return {
             "yaml": yaml_config,
