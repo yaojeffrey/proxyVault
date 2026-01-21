@@ -41,6 +41,15 @@ vless_mgr = VLESSManager()
 openvpn_mgr = OpenVPNManager()
 routing_mgr = RoutingManager()
 
+# Mount static files (frontend)
+# Check if frontend directory exists relative to backend
+import pathlib
+frontend_path = pathlib.Path(__file__).parent.parent / "frontend"
+if frontend_path.exists():
+    app.mount("/static", StaticFiles(directory=str(frontend_path)), name="static")
+else:
+    print(f"Warning: Frontend directory not found at {frontend_path}")
+
 
 # Authentication
 def verify_credentials(credentials: HTTPBasicCredentials = Depends(security)):
