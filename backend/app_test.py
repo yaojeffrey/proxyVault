@@ -75,6 +75,11 @@ class HysteriaConfig(BaseModel):
     obfs: Optional[str] = None
     bandwidth_up: Optional[str] = "100 mbps"
     bandwidth_down: Optional[str] = "100 mbps"
+    # Port hopping settings
+    port_hopping_enabled: bool = False
+    port_start: Optional[int] = 20000
+    port_end: Optional[int] = 30000
+    port_hop_interval: Optional[str] = None  # e.g., "30s", "1m", "5m"
 
 
 class VLESSConfig(BaseModel):
@@ -130,7 +135,7 @@ async def get_hysteria_config():
 @app.post("/api/hysteria/config", dependencies=[Depends(verify_credentials)])
 async def update_hysteria_config(config: HysteriaConfig):
     try:
-        hysteria_mgr.update_config(config.dict())
+        hysteria_mgr.update_config(config.model_dump())
         return {"status": "success", "message": "Hysteria configuration updated"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -154,7 +159,7 @@ async def get_vless_config():
 @app.post("/api/vless/config", dependencies=[Depends(verify_credentials)])
 async def update_vless_config(config: VLESSConfig):
     try:
-        vless_mgr.update_config(config.dict())
+        vless_mgr.update_config(config.model_dump())
         return {"status": "success", "message": "VLESS configuration updated"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

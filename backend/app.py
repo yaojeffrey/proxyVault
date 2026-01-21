@@ -133,7 +133,7 @@ async def get_hysteria_config():
 async def update_hysteria_config(config: HysteriaConfig):
     """Update Hysteria configuration"""
     try:
-        hysteria_mgr.update_config(config.dict())
+        hysteria_mgr.update_config(config.model_dump())
         return {"status": "success", "message": "Hysteria configuration updated"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -160,7 +160,7 @@ async def get_vless_config():
 async def update_vless_config(config: VLESSConfig):
     """Update VLESS configuration"""
     try:
-        vless_mgr.update_config(config.dict())
+        vless_mgr.update_config(config.model_dump())
         return {"status": "success", "message": "VLESS configuration updated"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
