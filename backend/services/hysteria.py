@@ -94,6 +94,10 @@ class HysteriaManager:
                     '-days', '36500',
                     '-subj', '/CN=bing.com'
                 ], check=True, capture_output=True)
+                
+                # Set proper permissions for hysteria-server to read
+                os.chmod(cert_file, 0o644)
+                os.chmod(key_file, 0o600)
             
             # Use TLS with self-signed cert (not ACME)
             hysteria_config["tls"] = {

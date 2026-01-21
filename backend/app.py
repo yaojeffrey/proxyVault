@@ -5,8 +5,17 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 import secrets
 import os
+import logging
+import traceback
 from typing import Optional, Dict, Any
 import uvicorn
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
 
 from services.hysteria import HysteriaManager
 from services.vless import VLESSManager
@@ -133,9 +142,13 @@ async def get_hysteria_config():
 async def update_hysteria_config(config: HysteriaConfig):
     """Update Hysteria configuration"""
     try:
+        logger.info(f"Updating Hysteria config: port={config.port}, port_hopping={config.port_hopping_enabled}")
         hysteria_mgr.update_config(config.model_dump())
+        logger.info("Hysteria config updated successfully")
         return {"status": "success", "message": "Hysteria configuration updated"}
     except Exception as e:
+        logger.error(f"Failed to update Hysteria config: {str(e)}")
+        logger.error(traceback.format_exc())
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -143,9 +156,13 @@ async def update_hysteria_config(config: HysteriaConfig):
 async def control_hysteria_service(action: ServiceAction):
     """Control Hysteria service (start/stop/restart)"""
     try:
+        logger.info(f"Controlling Hysteria service: action={action.action}")
         result = hysteria_mgr.control_service(action.action)
+        logger.info(f"Hysteria service {action.action} successful")
         return {"status": "success", "action": action.action, "result": result}
     except Exception as e:
+        logger.error(f"Failed to {action.action} Hysteria service: {str(e)}")
+        logger.error(traceback.format_exc())
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -160,9 +177,13 @@ async def get_vless_config():
 async def update_vless_config(config: VLESSConfig):
     """Update VLESS configuration"""
     try:
+        logger.info(f"Updating VLESS config: port={config.port}, uuid={config.uuid[:8]}...")
         vless_mgr.update_config(config.model_dump())
+        logger.info("VLESS config updated successfully")
         return {"status": "success", "message": "VLESS configuration updated"}
     except Exception as e:
+        logger.error(f"Failed to update VLESS config: {str(e)}")
+        logger.error(traceback.format_exc())
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -170,9 +191,13 @@ async def update_vless_config(config: VLESSConfig):
 async def control_vless_service(action: ServiceAction):
     """Control VLESS service (start/stop/restart)"""
     try:
+        logger.info(f"Controlling VLESS service: action={action.action}")
         result = vless_mgr.control_service(action.action)
+        logger.info(f"VLESS service {action.action} successful")
         return {"status": "success", "action": action.action, "result": result}
     except Exception as e:
+        logger.error(f"Failed to {action.action} VLESS service: {str(e)}")
+        logger.error(traceback.format_exc())
         raise HTTPException(status_code=500, detail=str(e))
 
 
