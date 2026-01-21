@@ -14,6 +14,9 @@ A web-based admin panel to configure and manage proxy protocols (Hysteria, VLESS
 - ✅ **Web Admin UI** - Easy configuration through modern web interface
 - ✅ **Traffic Routing** - Automatic iptables configuration for transparent routing
 - ✅ **Service Management** - Start/stop/restart services with one click
+- ✅ **Real-time Monitoring** - System resources, bandwidth, connections, logs
+- ✅ **Interactive Charts** - CPU, memory, network traffic visualization
+- ✅ **Logs Viewer** - Live service logs with auto-refresh
 - ✅ **Quick Setup** - One-line installation script for Ubuntu
 
 ---
@@ -78,13 +81,21 @@ http://YOUR_SERVER_IP:8000
 Default credentials: admin / admin123
 ```
 
-### 2. Configure Hysteria
+### 2. Monitor System (NEW!)
+
+- Navigate to **Monitoring** tab
+- View real-time CPU, memory, disk usage
+- Track network bandwidth with interactive charts
+- Monitor active connections per protocol
+- View service logs with auto-refresh
+
+### 3. Configure Hysteria
 
 - Navigate to **Hysteria** tab
 - Set port, password, and obfuscation settings
 - Click **Save & Start**
 
-### 3. Configure VLESS + Reality
+### 4. Configure VLESS + Reality
 
 - Navigate to **VLESS** tab
 - Generate UUID or use existing
@@ -92,14 +103,14 @@ Default credentials: admin / admin123
 - Configure port and keys
 - Click **Save & Start**
 
-### 4. Setup OpenVPN (Optional)
+### 5. Setup OpenVPN (Optional)
 
 - Navigate to **OpenVPN** tab
 - Upload your `.ovpn` configuration file
 - Enter credentials if required
 - Click **Connect**
 
-### 5. Enable Traffic Routing
+### 6. Enable Traffic Routing
 
 - Check **"Route proxy traffic through OpenVPN"**
 - System will automatically configure iptables rules
