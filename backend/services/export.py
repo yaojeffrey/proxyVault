@@ -23,6 +23,7 @@ class ConfigExporter:
 auth: {config_data['password']}
 
 tls:
+  sni: bing.com
   insecure: true
 
 bandwidth:
@@ -47,11 +48,11 @@ http:
 """
         
         # Hysteria 2 URI (for some clients)
-        # Format: hysteria2://password@server:port/?insecure=1&obfs=salamander&obfs-password=xxx
+        # Format: hysteria2://password@server:port/?sni=xxx&insecure=1&obfs=salamander&obfs-password=xxx
         # Password must be URL-encoded to handle special characters
         encoded_password = quote(config_data['password'], safe='')
         uri_parts = [f"hysteria2://{encoded_password}@{server_ip}:{port_str}"]
-        params = ["insecure=1"]  # Required for self-signed certs
+        params = ["sni=bing.com", "insecure=1"]  # SNI matches cert CN, insecure for self-signed
         
         if config_data.get('obfs'):
             params.append(f"obfs=salamander")
