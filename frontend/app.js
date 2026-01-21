@@ -295,7 +295,143 @@ function generatePassword(inputId) {
         password += charset.charAt(Math.floor(Math.random() * charset.length));
     }
     document.getElementById(inputId).value = password;
+    
+    // Auto-reveal password after generation
+    const input = document.getElementById(inputId);
+    if (input.type === 'password') {
+        input.type = 'text';
+    }
+    
     showNotification('Password generated!', 'info');
+}
+
+function togglePasswordVisibility(inputId) {
+    const input = document.getElementById(inputId);
+    const button = event.target;
+    
+    if (input.type === 'password') {
+        input.type = 'text';
+        button.textContent = '🙈 Hide';
+    } else {
+        input.type = 'password';
+        button.textContent = '👁️ Show';
+    }
+}
+
+function copyToClipboard(inputId) {
+    const input = document.getElementById(inputId);
+    input.select();
+    document.execCommand('copy');
+    showNotification('Copied to clipboard!', 'success');
+}
+
+// Export Configuration
+async function exportConfig(protocol) {
+    try {
+        const result = await apiRequest(`/api/export/${protocol}`);
+        
+        if (!result || !result.formats) {
+            showNotification('No configuration to export', 'error');
+            return;
+        }
+        
+        // Create modal to show export options
+        showExportModal(protocol, result);
+        
+    } catch (error) {
+        showNotification(`Failed to export ${protocol} configuration`, 'error');
+    }
+}
+
+function showExportModal(protocol, data) {
+    const modal = document.createElement('div');
+    modal.className = 'modal';
+    modal.id = 'export-modal';
+    
+    let content = `
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>📤 Export ${protocol.toUpperCase()} Configuration</h2>
+                <button class="modal-close" onclick="closeExportModal()">✖</button>
+            </div>
+            <div class="modal-body">
+                <p><strong>Server IP:</strong> ${data.server_ip}</p>
+                <hr>
+    `;
+    
+    if (protocol === 'hysteria') {
+        content += `
+                <h3>📋 Client Config (YAML)</h3>
+                <p><small>Copy this to your Hysteria client config file:</small></p>
+                <textarea readonly rows="12" onclick="this.select()">${data.formats.yaml}</textarea>
+                <button class="btn-secondary" onclick="copyTextArea(this.previousElementSibling)">📋 Copy YAML</button>
+                
+                <hr>
+                
+                <h3>🔗 Quick Import URI</h3>
+                <p><small>Use this for clients that support URI import:</small></p>
+                <input type="text" readonly value="${data.formats.uri}" onclick="this.select()">
+                <button class="btn-secondary" onclick="copyToClipboardValue('${data.formats.uri}')">📋 Copy URI</button>
+        `;
+    } else if (protocol === 'vless') {
+        content += `
+                <h3>🔗 VLESS URI (for Nekobox/v2rayN)</h3>
+                <p><small>Import this URI directly into your client:</small></p>
+                <textarea readonly rows="3" onclick="this.select()">${data.formats.uri}</textarea>
+                <button class="btn-secondary" onclick="copyTextArea(this.previousElementSibling)">📋 Copy URI</button>
+                
+                <hr>
+                
+                <h3>📝 Manual Configuration</h3>
+                <pre>${data.formats.text}</pre>
+                <button class="btn-secondary" onclick="copyText(\`${data.formats.text}\`)">📋 Copy Text</button>
+        `;
+    }
+    
+    content += `
+            </div>
+        </div>
+    `;
+    
+    modal.innerHTML = content;
+    document.body.appendChild(modal);
+    
+    // Show modal
+    setTimeout(() => modal.classList.add('show'), 10);
+}
+
+function closeExportModal() {
+    const modal = document.getElementById('export-modal');
+    if (modal) {
+        modal.classList.remove('show');
+        setTimeout(() => modal.remove(), 300);
+    }
+}
+
+function copyTextArea(textarea) {
+    textarea.select();
+    document.execCommand('copy');
+    showNotification('Copied to clipboard!', 'success');
+}
+
+function copyToClipboardValue(text) {
+    const temp = document.createElement('textarea');
+    temp.value = text;
+    document.body.appendChild(temp);
+    temp.select();
+    document.execCommand('copy');
+    document.body.removeChild(temp);
+    showNotification('Copied to clipboard!', 'success');
+}
+
+function copyText(text) {
+    const temp = document.createElement('textarea');
+    temp.value = text;
+    document.body.appendChild(temp);
+    temp.select();
+    document.execCommand('copy');
+    document.body.removeChild(temp);
+    showNotification('Copied to clipboard!', 'success');
 }
 
 // Load existing configurations on page load

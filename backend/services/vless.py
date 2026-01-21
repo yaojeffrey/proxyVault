@@ -15,6 +15,9 @@ class VLESSManager:
     def __init__(self):
         self.config_path = Path(settings.VLESS_CONFIG)
         self.service_name = settings.VLESS_SERVICE
+        # Import firewall manager
+        from services.firewall import firewall_manager
+        self.firewall = firewall_manager
         
     def get_status(self) -> Dict[str, Any]:
         """Get VLESS service status"""
@@ -123,6 +126,9 @@ class VLESSManager:
             # Write configuration
             with open(self.config_path, 'w') as f:
                 json.dump(xray_config, f, indent=2)
+            
+            # Auto-configure firewall
+            self.firewall.configure_for_vless(config_data['port'])
             
             return True
         except Exception as e:

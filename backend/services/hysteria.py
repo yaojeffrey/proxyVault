@@ -14,6 +14,9 @@ class HysteriaManager:
     def __init__(self):
         self.config_path = Path(settings.HYSTERIA_CONFIG)
         self.service_name = settings.HYSTERIA_SERVICE
+        # Import firewall manager
+        from services.firewall import firewall_manager
+        self.firewall = firewall_manager
         
     def get_status(self) -> Dict[str, Any]:
         """Get Hysteria service status"""
@@ -107,6 +110,17 @@ class HysteriaManager:
             # Write configuration
             with open(self.config_path, 'w') as f:
                 yaml.dump(hysteria_config, f, default_flow_style=False)
+            
+            # Auto-configure firewall
+            if config_data.get('port_hopping_enabled'):
+                self.firewall.configure_for_hysteria(
+                    port_start=config_data.get('port_start'),
+                    port_end=config_data.get('port_end')
+                )
+            else:
+                self.firewall.configure_for_hysteria(
+                    port=config_data.get('port')
+                )
             
             return True
         except Exception as e:

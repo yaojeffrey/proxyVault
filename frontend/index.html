@@ -183,16 +183,19 @@
                         <small>How often to switch ports (empty = automatic)</small>
                     </div>
                     <div class="info-box">
-                        <p><strong>⚠️ Firewall Note:</strong></p>
-                        <p>With port hopping, you need to open the entire port range in your firewall:</p>
-                        <code>sudo ufw allow 20000:30000/udp</code>
+                        <p><strong>✅ Auto-Firewall:</strong></p>
+                        <p>Firewall will be configured automatically when you save!</p>
                     </div>
                 </div>
 
                 <div class="form-group">
                     <label for="hysteria-password">Password:</label>
-                    <input type="password" id="hysteria-password" required>
-                    <button type="button" class="btn-secondary" onclick="generatePassword('hysteria-password')">Generate</button>
+                    <div class="password-input-group">
+                        <input type="password" id="hysteria-password" required>
+                        <button type="button" class="btn-secondary" onclick="togglePasswordVisibility('hysteria-password')">👁️ Show</button>
+                        <button type="button" class="btn-secondary" onclick="generatePassword('hysteria-password')">Generate</button>
+                        <button type="button" class="btn-secondary" onclick="copyToClipboard('hysteria-password')">📋 Copy</button>
+                    </div>
                 </div>
                 <div class="form-group">
                     <label for="hysteria-obfs">Obfuscation (Optional):</label>
@@ -211,6 +214,7 @@
                     <button type="button" class="btn-success" onclick="controlService('hysteria', 'start')">Start</button>
                     <button type="button" class="btn-danger" onclick="controlService('hysteria', 'stop')">Stop</button>
                     <button type="button" class="btn-secondary" onclick="controlService('hysteria', 'restart')">Restart</button>
+                    <button type="button" class="btn-info" onclick="exportConfig('hysteria')">📤 Export for Client</button>
                 </div>
             </form>
         </section>
@@ -225,8 +229,11 @@
                 </div>
                 <div class="form-group">
                     <label for="vless-uuid">UUID:</label>
-                    <input type="text" id="vless-uuid" required>
-                    <button type="button" class="btn-secondary" onclick="generateUUID()">Generate UUID</button>
+                    <div class="password-input-group">
+                        <input type="text" id="vless-uuid" required>
+                        <button type="button" class="btn-secondary" onclick="generateUUID()">Generate UUID</button>
+                        <button type="button" class="btn-secondary" onclick="copyToClipboard('vless-uuid')">📋 Copy</button>
+                    </div>
                 </div>
                 <div class="form-group">
                     <label for="vless-reality-dest">Reality Destination:</label>
@@ -254,6 +261,7 @@
                     <button type="button" class="btn-success" onclick="controlService('vless', 'start')">Start</button>
                     <button type="button" class="btn-danger" onclick="controlService('vless', 'stop')">Stop</button>
                     <button type="button" class="btn-secondary" onclick="controlService('vless', 'restart')">Restart</button>
+                    <button type="button" class="btn-info" onclick="exportConfig('vless')">📤 Export for Client</button>
                 </div>
             </form>
         </section>

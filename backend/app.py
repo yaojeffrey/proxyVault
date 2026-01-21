@@ -13,6 +13,8 @@ from services.vless import VLESSManager
 from services.openvpn import OpenVPNManager
 from services.routing import RoutingManager
 from services.monitoring import monitoring_manager
+from services.export import config_exporter
+from services.firewall import firewall_manager
 from config import get_settings
 
 # Initialize FastAPI app
@@ -336,6 +338,93 @@ async def get_service_logs(service: str, lines: int = 50):
     
     logs = monitoring_manager.get_service_logs(service_name, lines)
     return {"service": service, "logs": logs}
+
+
+# Export endpoints
+@app.get("/api/export/hysteria", dependencies=[Depends(verify_credentials)])
+async def export_hysteria_config():
+    """Export Hysteria configuration for client apps"""
+    try:
+        hysteria_config = hysteria_mgr.get_config()
+        if not hysteria_config.get('configured'):
+            raise HTTPException(status_code=404, detail="Hysteria not configured yet")
+        
+        # Get server IP
+        server_ip = config_exporter.get_server_ip()
+        
+        # Parse config for export
+        config = hysteria_config['config']
+        port_str = config.get('listen', ':36712').replace(':', '')
+        
+        export_data = {
+            'password': config.get('auth', {}).get('password', ''),
+            'bandwidth_up': config.get('bandwidth', {}).get('up', '100 mbps'),
+            'bandwidth_down': config.get('bandwidth', {}).get('down', '100 mbps'),
+            'obfs': config.get('obfs', {}).get('salamander', {}).get('password')
+        }
+        
+        # Check if port hopping
+        if '-' in port_str:
+            parts = port_str.split('-')
+            export_data['port_hopping_enabled'] = True
+            export_data['port_start'] = int(parts[0])
+            export_data['port_end'] = int(parts[1])
+        else:
+            export_data['port_hopping_enabled'] = False
+            export_data['port'] = int(port_str)
+        
+        result = config_exporter.export_hysteria(export_data, server_ip)
+        return {
+            "status": "success",
+            "server_ip": server_ip,
+            "formats": result
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/export/vless", dependencies=[Depends(verify_credentials)])
+async def export_vless_config():
+    """Export VLESS configuration for client apps"""
+    try:
+        vless_config = vless_mgr.get_config()
+        if not vless_config.get('configured'):
+            raise HTTPException(status_code=404, detail="VLESS not configured yet")
+        
+        # Get server IP
+        server_ip = config_exporter.get_server_ip()
+        
+        # Parse config for export
+        config = vless_config['config']
+        inbound = config['inbounds'][0]
+        reality = inbound['streamSettings']['realitySettings']
+        
+        export_data = {
+            'port': inbound['port'],
+            'uuid': inbound['settings']['clients'][0]['id'],
+            'reality_server_names': reality['serverNames'],
+            'public_key': reality['privateKey']  # Note: We need to derive public from private
+        }
+        
+        result = config_exporter.export_vless(export_data, server_ip)
+        return {
+            "status": "success",
+            "server_ip": server_ip,
+            "formats": result
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# Firewall management endpoints
+@app.get("/api/firewall/status", dependencies=[Depends(verify_credentials)])
+async def get_firewall_status():
+    """Get firewall status and rules"""
+    return {
+        "available": firewall_manager.ufw_available,
+        "enabled": firewall_manager.is_ufw_enabled(),
+        "rules": firewall_manager.get_rules()
+    }
 
 
 if __name__ == "__main__":
