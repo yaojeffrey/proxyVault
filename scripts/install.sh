@@ -72,14 +72,16 @@ mkdir -p /etc/openvpn/client
 mkdir -p /var/log/proxyvault
 
 echo -e "${GREEN}[6/8] Installing Python backend...${NC}"
-cd /opt/proxyvault
 
-# Detect script directory and find backend files
+# Detect script directory and find backend files FIRST (before changing directory)
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 echo "Script directory: $SCRIPT_DIR"
 echo "Repository directory: $REPO_DIR"
+
+# Now change to working directory
+cd /opt/proxyvault
 
 # Copy backend files
 if [ -d "$REPO_DIR/backend" ]; then
