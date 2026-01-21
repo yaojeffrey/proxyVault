@@ -62,6 +62,11 @@ class HysteriaConfig(BaseModel):
     obfs: Optional[str] = None
     bandwidth_up: Optional[str] = "100 mbps"
     bandwidth_down: Optional[str] = "100 mbps"
+    # Port hopping settings
+    port_hopping_enabled: bool = False
+    port_start: Optional[int] = 20000
+    port_end: Optional[int] = 30000
+    port_hop_interval: Optional[str] = None  # e.g., "30s", "1m", "5m"
 
 
 class VLESSConfig(BaseModel):

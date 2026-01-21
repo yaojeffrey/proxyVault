@@ -52,22 +52,40 @@ class HysteriaManager:
             return {"configured": False, "error": str(e)}
     
     def update_config(self, config_data: Dict[str, Any]) -> bool:
-        """Update Hysteria configuration"""
+        """Update Hysteria configuration with port hopping support"""
         try:
             # Ensure config directory exists
             self.config_path.parent.mkdir(parents=True, exist_ok=True)
             
             # Build Hysteria 2 configuration
-            hysteria_config = {
-                "listen": f":{config_data['port']}",
-                "acme": {
-                    "domains": [],  # Self-signed for now
-                    "email": ""
-                },
-                "auth": {
-                    "type": "password",
-                    "password": config_data['password']
-                }
+            hysteria_config = {}
+            
+            # Port configuration with hopping support
+            if config_data.get('port_hopping_enabled'):
+                # Port hopping: use port range
+                port_start = config_data.get('port_start', 20000)
+                port_end = config_data.get('port_end', 30000)
+                hysteria_config["listen"] = f":{port_start}-{port_end}"
+                
+                # Add port hopping interval (optional)
+                if config_data.get('port_hop_interval'):
+                    hysteria_config["portHopping"] = {
+                        "interval": config_data['port_hop_interval']
+                    }
+            else:
+                # Single port (traditional)
+                hysteria_config["listen"] = f":{config_data['port']}"
+            
+            # TLS/ACME configuration
+            hysteria_config["acme"] = {
+                "domains": [],  # Self-signed for now
+                "email": ""
+            }
+            
+            # Authentication
+            hysteria_config["auth"] = {
+                "type": "password",
+                "password": config_data['password']
             }
             
             # Add optional obfuscation

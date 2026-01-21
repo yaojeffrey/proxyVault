@@ -9,6 +9,7 @@ A web-based admin panel to configure and manage proxy protocols (Hysteria, VLESS
 ## 🌟 Features
 
 - ✅ **Hysteria 2** - Latest high-performance proxy protocol
+- ✅ **Port Hopping** - Anti-censorship port randomization for Hysteria ⭐ NEW
 - ✅ **VLESS + Reality** - Anti-censorship proxy with TLS camouflage
 - ✅ **OpenVPN Integration** - Route all proxy traffic through OpenVPN
 - ✅ **Web Admin UI** - Easy configuration through modern web interface

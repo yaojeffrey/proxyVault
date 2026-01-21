@@ -104,16 +104,37 @@ function updateStatusCard(cardId, isRunning) {
 }
 
 // Hysteria Functions
+
+// Toggle port hopping UI
+function togglePortHopping() {
+    const enabled = document.getElementById('hysteria-port-hopping').checked;
+    document.getElementById('single-port-config').style.display = enabled ? 'none' : 'block';
+    document.getElementById('port-hopping-config').style.display = enabled ? 'block' : 'none';
+}
+
 document.getElementById('hysteria-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     
+    const portHoppingEnabled = document.getElementById('hysteria-port-hopping').checked;
+    
     const config = {
-        port: parseInt(document.getElementById('hysteria-port').value),
         password: document.getElementById('hysteria-password').value,
         obfs: document.getElementById('hysteria-obfs').value || null,
         bandwidth_up: document.getElementById('hysteria-bandwidth-up').value,
-        bandwidth_down: document.getElementById('hysteria-bandwidth-down').value
+        bandwidth_down: document.getElementById('hysteria-bandwidth-down').value,
+        port_hopping_enabled: portHoppingEnabled
     };
+    
+    if (portHoppingEnabled) {
+        // Port hopping configuration
+        config.port_start = parseInt(document.getElementById('hysteria-port-start').value);
+        config.port_end = parseInt(document.getElementById('hysteria-port-end').value);
+        config.port_hop_interval = document.getElementById('hysteria-hop-interval').value || null;
+        config.port = config.port_start; // Default for API compatibility
+    } else {
+        // Single port configuration
+        config.port = parseInt(document.getElementById('hysteria-port').value);
+    }
     
     try {
         await apiRequest('/api/hysteria/config', 'POST', config);
@@ -284,10 +305,29 @@ async function loadConfigurations() {
         const hysteriaConfig = await apiRequest('/api/hysteria/config');
         if (hysteriaConfig.configured && hysteriaConfig.config) {
             const config = hysteriaConfig.config;
-            if (config.listen) {
+            
+            // Check if port hopping is enabled
+            if (config.listen && config.listen.includes('-')) {
+                // Port hopping mode
+                const [start, end] = config.listen.replace(':', '').split('-');
+                document.getElementById('hysteria-port-hopping').checked = true;
+                document.getElementById('hysteria-port-start').value = start;
+                document.getElementById('hysteria-port-end').value = end;
+                
+                // Load hop interval if present
+                if (config.portHopping && config.portHopping.interval) {
+                    document.getElementById('hysteria-hop-interval').value = config.portHopping.interval;
+                }
+                
+                togglePortHopping(); // Show port hopping UI
+            } else if (config.listen) {
+                // Single port mode
                 const port = config.listen.replace(':', '');
                 document.getElementById('hysteria-port').value = port;
+                document.getElementById('hysteria-port-hopping').checked = false;
+                togglePortHopping(); // Show single port UI
             }
+            
             if (config.auth && config.auth.password) {
                 document.getElementById('hysteria-password').value = config.auth.password;
             }
