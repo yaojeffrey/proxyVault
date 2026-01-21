@@ -45,8 +45,7 @@ apt-get install -y \
     iptables \
     openvpn \
     net-tools \
-    iproute2 \
-    systemctl
+    iproute2
 
 echo -e "${GREEN}[3/8] Installing Hysteria 2...${NC}"
 if ! command -v hysteria &> /dev/null; then
