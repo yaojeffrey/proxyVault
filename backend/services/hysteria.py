@@ -68,8 +68,8 @@ class HysteriaManager:
                 # Port hopping: use port range
                 port_start = config_data.get('port_start', 20000)
                 port_end = config_data.get('port_end', 30000)
-                # Bind to 0.0.0.0 for IPv4 (more compatible with most clients)
-                hysteria_config["listen"] = f"0.0.0.0:{port_start}-{port_end}"
+                # Use :port format which binds to all interfaces (IPv4 and IPv6)
+                hysteria_config["listen"] = f":{port_start}-{port_end}"
                 
                 # Add port hopping interval (optional)
                 if config_data.get('port_hop_interval'):
@@ -78,8 +78,8 @@ class HysteriaManager:
                     }
             else:
                 # Single port (traditional)
-                # Bind to 0.0.0.0 for IPv4 (more compatible with most clients)
-                hysteria_config["listen"] = f"0.0.0.0:{config_data['port']}"
+                # Use :port format which binds to all interfaces (IPv4 and IPv6)
+                hysteria_config["listen"] = f":{config_data['port']}"
             
             # TLS configuration - use self-signed certificates
             # Generate self-signed cert if it doesn't exist
